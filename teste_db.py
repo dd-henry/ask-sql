@@ -17,4 +17,3 @@ def testar():
 
 if __name__ == "__main__":
     testar()
-    ##hotikaa
