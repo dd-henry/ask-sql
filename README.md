@@ -1,28 +1,43 @@
-# Ask-SQL
+# Ask-SQL 🤖
 
-Ask-SQL é uma ferramenta de linha de comando que traduz perguntas em linguagem natural para consultas SQL e as executa em seu banco de dados.
+> Converse com seu banco de dados usando linguagem natural.
 
-## Descrição
+O **Ask-SQL** é uma ferramenta interativa que traduz perguntas em linguagem natural para consultas SQL, permitindo que você explore seus dados sem precisar escrever código SQL. A aplicação utiliza um modelo de linguagem local via **Ollama** para a tradução, se conecta a um banco de dados **PostgreSQL** para executar as consultas e exibe os resultados de forma amigável.
 
-Este projeto utiliza modelos de linguagem (através do Ollama) para converter perguntas de usuários em consultas SQL válidas. Ele se conecta a um banco de dados PostgreSQL para executar a consulta e retornar o resultado, permitindo que usuários sem conhecimento de SQL possam consultar os dados.
+## ✨ Recursos
 
-## Recursos
+*   **Tradução de Linguagem Natural para SQL:** Faça perguntas como "quantos usuários se cadastraram no último mês?" e obtenha a consulta SQL correspondente.
+*   **Execução Direta no Banco de Dados:** Conecta-se ao seu banco de dados PostgreSQL para executar as consultas geradas.
+*   **Arquitetura Modular:** Código organizado em componentes com responsabilidades claras, facilitando a manutenção e extensão.
+*   **Engenharia de Prompt Avançada:** Utiliza o esquema do banco de dados e regras de negócio customizadas para gerar prompts mais precisos.
+*   **Suíte de Testes Abrangente:** Inclui testes unitários e de integração para garantir a qualidade e a confiabilidade do código.
 
-*   Traduz linguagem natural para SQL.
-*   Integração com Ollama para processamento de linguagem natural.
-*   Conecta e executa consultas em um banco de dados PostgreSQL.
-*   Arquitetura modular para fácil extensão.
+## 🏗️ Arquitetura e Fluxo de Dados
 
-## Como Funciona
+O projeto é construído com uma arquitetura modular, garantindo que cada componente tenha uma única responsabilidade.
 
-1.  O usuário insere uma pergunta via linha de comando.
-2.  O componente `Prompter` formata a pergunta em um prompt adequado para o modelo de linguagem.
-3.  O componente `Translator` envia o prompt para o Ollama e recebe a consulta SQL gerada.
-4.  O `Executor` se conecta ao banco de dados PostgreSQL.
-5.  A consulta SQL é executada no banco de dados.
-6.  O resultado é exibido para o usuário.
+```mermaid
+graph TD
+    A[Usuário via Interface] --> B(app.py);
+    B --> C{Prompter};
+    D[Schema do Banco] --> C;
+    E[Regras de Negócio] --> C;
+    C --> F{Translator (Ollama)};
+    F --> G[Consulta SQL Gerada];
+    G --> H{Executor (Postgres)};
+    H --> I[Resultados (DataFrame)];
+    I --> B;
+    B --> A;
+```
 
-## Instalação
+1.  **Interface (`app.py` e `components.py`):** Ponto de entrada da aplicação. Gerencia a interface do usuário, o estado da sessão e o fluxo principal.
+2.  **Engenharia de Prompt (`core/prompter.py`):** Monta o "System Prompt" que será enviado ao modelo de linguagem, unindo regras de negócio, o esquema do banco de dados e a pergunta do usuário.
+3.  **Motor de Tradução (`core/translator.py`):** Comunica-se com a API do Ollama, enviando o prompt e tratando a resposta para extrair a consulta SQL do JSON retornado.
+4.  **Banco de Dados (`database/postgres.py`):** Implementa a lógica de conexão com o PostgreSQL usando SQLAlchemy, executa a consulta e retorna os resultados como um DataFrame do pandas.
+
+## 🚀 Instalação e Configuração
+
+Siga os passos abaixo para configurar o ambiente de desenvolvimento.
 
 1.  **Clone o repositório:**
     ```bash
@@ -42,8 +57,8 @@ Este projeto utiliza modelos de linguagem (através do Ollama) para converter pe
     ```
 
 4.  **Configure as variáveis de ambiente:**
-    Crie um arquivo `.env` na raiz do projeto e adicione as informações de conexão com o banco de dados e a URL do Ollama.
-    ```
+    Crie um arquivo `.env` na raiz do projeto e adicione as credenciais do seu banco de dados e a URL do Ollama.
+    ```env
     DB_HOST=localhost
     DB_PORT=5432
     DB_USER=seu_usuario
@@ -52,9 +67,15 @@ Este projeto utiliza modelos de linguagem (através do Ollama) para converter pe
     OLLAMA_API_URL=http://localhost:11434
     ```
 
-## Como Usar
+## 🏃 Como Usar
 
-Para executar a aplicação, utilize o `app.py`:
+Para executar a aplicação principal, use o `app.py`. A interface será aberta no seu navegador.
+
+```bash
+streamlit run app.py
+```
+
+Você também pode executar uma pergunta diretamente pela linha de comando para testes rápidos:
 
 ```bash
 python app.py "Sua pergunta em linguagem natural aqui"
@@ -66,10 +87,36 @@ python app.py "Sua pergunta em linguagem natural aqui"
 python app.py "Quantos usuários se cadastraram no último mês?"
 ```
 
-## Executando os Testes
+## ✅ Estratégia de Testes
 
-Para rodar a suíte de testes, use o `pytest`:
+O projeto utiliza `pytest` para garantir a qualidade do código, com uma clara separação entre testes unitários e de integração.
 
-```bash
-pytest
-```
+### Testes Unitários
+Valida a lógica interna dos componentes de forma isolada, usando *mocks* para simular dependências externas.
+
+-   **`test_prompter.py`:** Garante que o montador de prompts anexa corretamente as regras e o esquema do banco.
+-   **`test_translator.py`:** Valida a extração do JSON da resposta do modelo de linguagem, mesmo com ruídos.
+-   **`test_postgres.py`:** Assegura que o adaptador do banco de dados se comporta como esperado sem a necessidade de uma conexão real.
+
+### Testes de Integração
+Valida o fluxo completo, envolvendo a comunicação real com a API do Ollama.
+
+-   **`test_integration_ollama.py`:** Envia uma requisição real para o modelo de linguagem e verifica se a resposta contém a estrutura esperada (uma consulta SQL válida).
+
+### Executando os Testes
+
+Graças às configurações no arquivo `pytest.ini`, você pode executar diferentes suítes de teste:
+
+-   **Rodar todos os testes:**
+    ```bash
+    pytest -v
+    ```
+-   **Rodar apenas testes unitários (Rápidos):**
+    ```bash
+    pytest -m "not integration" -v
+    ```
+-   **Rodar apenas testes de integração (Lentos, requer Ollama):**
+    ```bash
+    pytest -m "integration" -v
+    ```
+
